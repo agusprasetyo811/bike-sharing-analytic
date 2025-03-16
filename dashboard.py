@@ -9,6 +9,7 @@ import scipy.stats as stats
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 sns.set(style='dark')
+import altair as alt
 
 # Inisialisasi session state untuk navigasi
 if "page" not in st.session_state:
@@ -30,6 +31,7 @@ st.sidebar.title("Bike Sharing")
 page = st.sidebar.radio(
 	"Laporan Pengguna Sepeda", [
     "Halaman Utama",
+    "Ringkasan",
 		"Pengaruh Musim", 
 		"Pengaruh Cuaca",
     "Hari Kerja vs Libur",
@@ -39,6 +41,66 @@ page = st.sidebar.radio(
     "Analisis Lanjutan"
 	]
 )
+
+# Set tailwind style
+tailwind_cdn = """
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+"""
+st.markdown(tailwind_cdn, unsafe_allow_html=True)
+
+# Filter
+st.sidebar.header("Filter")
+
+# Fungsi checkbox filter
+def create_checkbox_filter(title, filter_dict):
+    st.sidebar.write(f"### {title}")
+    filter_df = pd.DataFrame(filter_dict)
+    selected_values = [row["value"] for _, row in filter_df.iterrows() if st.sidebar.checkbox(row["key"], value=True)]
+    return selected_values
+
+# Filter by Year
+year_filter = {
+    'key': ["2011", "2012"],
+    'value': [0, 1]
+}
+year_filter_df = pd.DataFrame(year_filter)
+selected_years = st.sidebar.multiselect("Pilih Tahun", year_filter_df['key'].tolist(), default=year_filter_df['key'].tolist())
+selected_year_values = year_filter_df[year_filter_df['key'].isin(selected_years)]['value'].tolist()
+
+# Filter by Month
+month_filter = {
+    'key': ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun",
+            "Jul", "Aug", "Sept", "Okt", "Nov", "Des"],
+    'value': list(range(1, 13))
+}
+month_filter_df = pd.DataFrame(month_filter)
+selected_months = st.sidebar.multiselect("Pilih Bulan", month_filter_df['key'].tolist(), default=month_filter_df['key'].tolist())
+selected_month_values = month_filter_df[month_filter_df['key'].isin(selected_months)]['value'].tolist()
+
+# Filter by Season
+season_filter = {
+    'key': ["Spring", "Summer", "Fall", "Winter"],
+    'value': [1, 2, 3, 4]
+}
+selected_seasons = create_checkbox_filter("Filter Season", season_filter)
+
+# Filter by Weathersit
+weathersit_filter = {
+    'key': ["Clear", "Mist", "Light Snow", "Heavy Rain"],
+    'value': [1, 2, 3, 4]
+}
+selected_weathersit = create_checkbox_filter("Filter Weathersit", weathersit_filter)
+
+# Filter by Workingday
+workingday_filter = {
+    'key': ["Hari Kerja", "Hari Libur"],
+    'value': [1, 0]
+}
+selected_workingdays = create_checkbox_filter("Filter Workingday", workingday_filter)
+
+
+# Filter DataFrame 
+filtered_df = days_df.copy()
 
 if page == "Halaman Utama":
   st.title("Bike Sharing")
@@ -53,6 +115,206 @@ if page == "Halaman Utama":
     "- Perbandingan Casual vs Registered User\n\n"
     "Pilih menu disamping untuk melihat hasil laporan"
   )
+elif page == "Ringkasan":
+  st.title("Ringkasan")
+  
+  if selected_year_values:
+    filtered_df = filtered_df[filtered_df["yr"].isin(selected_year_values)]
+
+  if selected_seasons:
+    filtered_df = filtered_df[filtered_df["season"].isin(selected_seasons)]
+    
+  if selected_weathersit:
+    filtered_df = filtered_df[filtered_df["weathersit"].isin(selected_weathersit)]
+    
+  if selected_workingdays:
+    filtered_df = filtered_df[filtered_df["workingday"].isin(selected_workingdays)]
+    
+  if selected_month_values:
+    filtered_df = filtered_df[filtered_df["mnth"].isin(selected_month_values)]
+    
+  total_cnt = filtered_df["cnt"].sum()
+  formatted_total_cnt = f"{total_cnt:,}"
+  avg_cnt = filtered_df["cnt"].mean()
+  formatted_avg_cnt = f"{avg_cnt:,.2f}"
+  total_casual = filtered_df["casual"].sum()
+  formatted_total_casual = f"{total_casual:,}"
+  total_registered = filtered_df["registered"].sum()
+  formatted_total_registered = f"{total_registered:,}"
+  
+  columns = st.columns(2)
+  with columns[0]:
+    st.markdown(f"""
+        <div class="bg-white border shadow-sm rounded-xl p-4">
+          <p class="text-sm">Total Pengguna Sepeda</p>
+          <h2 class="text-lg">{formatted_total_cnt}</h2>
+        </div>
+        """, 
+      unsafe_allow_html=True
+    )
+  with columns[1]:
+    st.markdown(f"""
+        <div class="bg-white border shadow-sm rounded-xl p-4">
+          <p class="text-sm">Rata-rata Pengguna Sepeda</p>
+          <h2 class="text-lg">{formatted_avg_cnt}</h2>
+        </div>
+        """, 
+      unsafe_allow_html=True
+    )
+  
+  st.markdown(f"""
+			<div class="mb-3"></div>
+  	""",
+ 		unsafe_allow_html=True
+  )
+    
+  columns = st.columns(2)
+  with columns[0]:
+    st.markdown(f"""
+        <div class="bg-white border shadow-sm rounded-xl p-4">
+          <p class="text-sm">Total Pengguna Casual</p>
+          <h2 class="text-lg">{formatted_total_casual}</h2>
+        </div>
+        """, 
+      unsafe_allow_html=True
+    )
+  with columns[1]:
+    st.markdown(f"""
+        <div class="bg-white border shadow-sm rounded-xl p-4">
+          <p class="text-sm">Total Pengguna Registered</p>
+          <h2 class="text-lg">{formatted_total_registered}</h2>
+        </div>
+        """, 
+      unsafe_allow_html=True
+    )
+  
+  st.markdown(f"""
+			<div class="mb-10"></div>
+  	""",
+ 		unsafe_allow_html=True
+  )
+  
+  # Visualisasi Perbandingan Casual vs Register
+  st.write("### Perbandingan Pengguna Casual dan Registered")
+  chart_data = pd.DataFrame({
+			"Kategori": ["Casual", "Registered"],
+			"Jumlah Pengguna": [total_casual, total_registered]
+	})
+  chart = alt.Chart(chart_data).mark_bar().encode(
+			x=alt.X("Kategori", sort=None),
+			y="Jumlah Pengguna",
+			color="Kategori"
+	).properties(
+			width=600,
+			height=400
+	)
+  st.altair_chart(chart, use_container_width=True)
+  
+  # Visualisasi Tren perbulan
+  monthly_trend = filtered_df.groupby("mnth")[["casual", "registered"]].sum().reset_index()
+  month_map = {
+			1: "Jan", 2: "Feb", 3: "Mar", 4: "Apr", 5: "Mei", 6: "Jun",
+			7: "Jul", 8: "Aug", 9: "Sept", 10: "Okt", 11: "Nov", 12: "Des"
+	}
+  monthly_trend["mnth_label"] = monthly_trend["mnth"].map(month_map)
+  monthly_trend_melted = monthly_trend.melt(
+    id_vars=["mnth", "mnth_label"], 
+    value_vars=["casual", "registered"], 
+		var_name="Kategori Pengguna", 
+		value_name="Jumlah Pengguna"
+  )
+  monthly_trend_melted = monthly_trend_melted.sort_values(by="mnth")
+  st.write("### Tren Jumlah Pengguna (Casual & Registered) per bulan")
+  chart = alt.Chart(monthly_trend_melted).mark_line(point=True).encode(
+			x=alt.X("mnth_label:N", title="Bulan", sort=list(month_map.values())),
+			y=alt.Y("Jumlah Pengguna:Q", title="Jumlah Pengguna"),
+			color="Kategori Pengguna:N",
+			tooltip=["mnth_label", "Kategori Pengguna", "Jumlah Pengguna"]
+	).properties(
+			width=800,
+			height=400
+	)
+  st.altair_chart(chart, use_container_width=True)
+  
+  # Visualisasi Tren Season
+  season_trend = filtered_df.groupby("season")[["casual", "registered"]].sum().reset_index()
+  season_map = {
+    1: "Spring", 2: "Summer", 3: "Fall", 4: "Winter"
+	}
+  season_trend["season_label"] = season_trend["season"].map(season_map)
+  season_trend_melted = season_trend.melt(
+    id_vars=["season", "season_label"], 
+		value_vars=["casual", "registered"], 
+		var_name="Kategori Pengguna", 
+		value_name="Jumlah Pengguna"
+  )
+  season_trend_melted = season_trend_melted.sort_values(by="season")
+  st.write("### Tren Jumlah Pengguna (Casual & Registered) per Musim")
+  chart = alt.Chart(season_trend_melted).mark_bar().encode(
+			x=alt.X("season_label:N", title="Musim", sort=["Spring", "Summer", "Fall", "Winter"]),
+			y=alt.Y("Jumlah Pengguna:Q", title="Jumlah Pengguna"),
+			color="Kategori Pengguna:N",
+			tooltip=["season_label", "Kategori Pengguna", "Jumlah Pengguna"]
+	).properties(
+			width=800,
+			height=400
+	)
+  st.altair_chart(chart, use_container_width=True)
+  
+  # Visualisasi weathersit 
+  weathersit_trend = filtered_df.groupby("weathersit")[["casual", "registered"]].sum().reset_index()
+  weathersit_map = {
+			1: "Clear",
+			2: "Mist",
+			3: "Light Snow",
+			4: "Heavy Rain"
+	}
+  weathersit_trend["weathersit_label"] = weathersit_trend["weathersit"].map(weathersit_map)
+  weathersit_trend_melted = weathersit_trend.melt(
+    id_vars=["weathersit", "weathersit_label"], 
+		value_vars=["casual", "registered"], 
+		var_name="Kategori Pengguna", 
+		value_name="Jumlah Pengguna"
+  )
+  weathersit_trend_melted = weathersit_trend_melted.sort_values(by="weathersit")
+  st.write("### Tren Jumlah Pengguna (Casual & Registered) berdasarkan Kondisi Cuaca")
+  chart = alt.Chart(weathersit_trend_melted).mark_bar().encode(
+			x=alt.X("weathersit_label:N", title="Kondisi Cuaca", sort=["Clear", "Mist", "Light Snow", "Heavy Rain"]),
+			y=alt.Y("Jumlah Pengguna:Q", title="Jumlah Pengguna"),
+			color="Kategori Pengguna:N",
+			tooltip=["weathersit_label", "Kategori Pengguna", "Jumlah Pengguna"]
+	).properties(
+			width=800,
+			height=400
+	)
+  st.altair_chart(chart, use_container_width=True)
+  
+  # Visualisasi Trend Workingday
+  workingday_trend = filtered_df.groupby("workingday")[["casual", "registered"]].sum().reset_index()
+  workingday_map = {
+			1: "Hari Kerja",
+			0: "Hari Libur"
+	}
+  workingday_trend["workingday_label"] = workingday_trend["workingday"].map(workingday_map)
+  workingday_trend_melted = workingday_trend.melt(
+   	id_vars=["workingday", "workingday_label"], 
+		value_vars=["casual", "registered"], 
+		var_name="Kategori Pengguna", 
+		value_name="Jumlah Pengguna"
+  )
+  workingday_trend_melted = workingday_trend_melted.sort_values(by="workingday")
+  st.write("### Tren Jumlah Pengguna (Casual & Registered) berdasarkan Hari Kerja")
+  chart = alt.Chart(workingday_trend_melted).mark_bar().encode(
+			x=alt.X("workingday_label:N", title="Hari", sort=["Hari Libur", "Hari Kerja"]),
+			y=alt.Y("Jumlah Pengguna:Q", title="Jumlah Pengguna"),
+			color="Kategori Pengguna:N",
+			tooltip=["workingday_label", "Kategori Pengguna", "Jumlah Pengguna"]
+	).properties(
+			width=800,
+			height=400
+	)
+  st.altair_chart(chart, use_container_width=True)
+
 elif page == "Pengaruh Musim":
 	st.title("Pengaruh Musim terhadap jumlah pengguna sepeda")
 	
