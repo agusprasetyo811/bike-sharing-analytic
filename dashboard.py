@@ -101,6 +101,23 @@ selected_workingdays = create_checkbox_filter("Filter Workingday", workingday_fi
 
 # Filter DataFrame 
 filtered_df = days_df.copy()
+filtered_hours_df = hours_df.copy()
+
+if selected_year_values:
+  filtered_df = filtered_df[filtered_df["yr"].isin(selected_year_values)]
+  filtered_hours_df = filtered_hours_df[filtered_hours_df["yr"].isin(selected_year_values)]
+if selected_seasons:
+	filtered_df = filtered_df[filtered_df["season"].isin(selected_seasons)]	
+	filtered_hours_df = filtered_hours_df[filtered_hours_df["season"].isin(selected_seasons)]	
+if selected_weathersit:
+	filtered_df = filtered_df[filtered_df["weathersit"].isin(selected_weathersit)]
+	filtered_hours_df = filtered_hours_df[filtered_hours_df["weathersit"].isin(selected_seasons)]	
+if selected_workingdays:
+	filtered_df = filtered_df[filtered_df["workingday"].isin(selected_workingdays)]
+	filtered_hours_df = filtered_hours_df[filtered_hours_df["workingday"].isin(selected_workingdays)]
+if selected_month_values:
+	filtered_df = filtered_df[filtered_df["mnth"].isin(selected_month_values)]
+	filtered_hours_df = filtered_hours_df[filtered_hours_df["mnth"].isin(selected_month_values)]
 
 if page == "Halaman Utama":
   st.title("Bike Sharing")
@@ -117,21 +134,6 @@ if page == "Halaman Utama":
   )
 elif page == "Ringkasan":
   st.title("Ringkasan")
-  
-  if selected_year_values:
-    filtered_df = filtered_df[filtered_df["yr"].isin(selected_year_values)]
-
-  if selected_seasons:
-    filtered_df = filtered_df[filtered_df["season"].isin(selected_seasons)]
-    
-  if selected_weathersit:
-    filtered_df = filtered_df[filtered_df["weathersit"].isin(selected_weathersit)]
-    
-  if selected_workingdays:
-    filtered_df = filtered_df[filtered_df["workingday"].isin(selected_workingdays)]
-    
-  if selected_month_values:
-    filtered_df = filtered_df[filtered_df["mnth"].isin(selected_month_values)]
     
   total_cnt = filtered_df["cnt"].sum()
   formatted_total_cnt = f"{total_cnt:,}"
@@ -314,7 +316,6 @@ elif page == "Ringkasan":
 			height=400
 	)
   st.altair_chart(chart, use_container_width=True)
-
 elif page == "Pengaruh Musim":
 	st.title("Pengaruh Musim terhadap jumlah pengguna sepeda")
 	
@@ -325,7 +326,7 @@ elif page == "Pengaruh Musim":
 			3: "fall",
 			4: "winter"
 	}
-	season_df = days_df.reset_index()
+	season_df = filtered_df.reset_index()
 	season_df.season =  season_df.season.map(season_labels)
 						
 	st.markdown("---")
@@ -349,7 +350,7 @@ elif page == "Pengaruh Musim":
 	# Visualisasi Season
 	st.write("##### Grafik perbandingan rata-rata pengguna berdasarkan season") 
 	fig, ax = plt.subplots(figsize=(35, 15))
-	sns.barplot(x="season", hue="season", y="cnt_log",  data=season_df, palette="Set2", estimator=np.mean, ax=ax)
+	sns.barplot(x="season", y="cnt_log", data=season_df, color="skyblue", estimator=np.mean, ax=ax)
 	ax.set_ylabel(None)
 	ax.set_xlabel("Season", fontsize=30)
 	ax.set_title("Rata-rata pengguna berdasarkan season", loc="center", fontsize=50, pad=30)
@@ -381,7 +382,7 @@ elif page == "Pengaruh Cuaca":
 			3: "Light Snow",
 			4: "Heavy Rain"
 	}
-	weathersit_df = days_df.reset_index()
+	weathersit_df = filtered_df.reset_index()
 	weathersit_df.weathersit =  weathersit_df.weathersit.map(weathersit_labels)
 						
 	st.markdown("---")
@@ -449,8 +450,8 @@ elif page == "Hari Kerja vs Libur":
 	
 	fig, ax = plt.subplots(figsize=(35, 15))
 	
-	sns.histplot(days_df[days_df['workingday'] == 1]['cnt_log'], kde=True, color='blue', label='Hari Kerja', bins=30, alpha=0.6, ax=ax)
-	sns.histplot(days_df[days_df['workingday'] == 0]['cnt_log'], kde=True, color='red', label='Hari Libur', bins=30, alpha=0.6, ax=ax)
+	sns.histplot(filtered_df[filtered_df['workingday'] == 1]['cnt_log'], kde=True, color='blue', label='Hari Kerja', bins=30, alpha=0.6, ax=ax)
+	sns.histplot(filtered_df[filtered_df['workingday'] == 0]['cnt_log'], kde=True, color='red', label='Hari Libur', bins=30, alpha=0.6, ax=ax)
 	ax.set_ylabel("Frekuensi", fontsize=30)
 	ax.set_xlabel("Jumlah Pengguna Sepeda", fontsize=30)
 	ax.set_title("Distribusi Pengguna Sepeda: Hari Kerja vs Hari Libur", loc="center", fontsize=50, pad=30)
@@ -460,8 +461,8 @@ elif page == "Hari Kerja vs Libur":
 	st.pyplot(fig)
 	
 	fig, ax = plt.subplots(figsize=(35, 15))
-	sns.histplot(days_df[days_df['holiday'] == 1]['cnt_log'], kde=True, color='blue', label='Hari Libur Nasional', bins=30, alpha=0.6, ax=ax)
-	sns.histplot(days_df[days_df['holiday'] == 0]['cnt_log'], kde=True, color='red', label='Hari Biasa', bins=30, alpha=0.6, ax=ax)
+	sns.histplot(filtered_df[filtered_df['holiday'] == 1]['cnt_log'], kde=True, color='blue', label='Hari Libur Nasional', bins=30, alpha=0.6, ax=ax)
+	sns.histplot(filtered_df[filtered_df['holiday'] == 0]['cnt_log'], kde=True, color='red', label='Hari Biasa', bins=30, alpha=0.6, ax=ax)
 	ax.set_ylabel("Frekuensi", fontsize=30)
 	ax.set_xlabel("Jumlah Pengguna Sepeda", fontsize=30)
 	ax.set_title("Distribusi Pengguna Sepeda: Hari Libur Nasional vs Hari Biasa", loc="center", fontsize=50, pad=30)
@@ -477,7 +478,7 @@ elif page == "Trend Bulanan":
 	st.markdown("---")
 							
 	fig, ax = plt.subplots(figsize=(35, 15))
-	monthly_trend = days_df.groupby("mnth")["cnt"].mean()
+	monthly_trend = filtered_df.groupby("mnth")["cnt"].mean()
 	ax.plot(monthly_trend.index, monthly_trend.values, marker='o', linestyle='-', color='b')
 	ax.set_xticks(range(1, 13)) 
 	ax.set_xticklabels([
@@ -497,7 +498,7 @@ elif page == "Trend Pengguna per Jam":
 		st.write("Trend Grafik menujukan beberapa pola seperti puncak pengguna terjadi di pagi dan sore hari dan pengguna rendah di malam dan dini hari")
 		st.markdown("---")
                 
-		hourly_trend = hours_df.groupby("hr")["cnt"].mean()
+		hourly_trend = filtered_hours_df.groupby("hr")["cnt"].mean()
                 
 		fig, ax = plt.subplots(figsize=(35, 15))
 		ax.plot(hourly_trend.index, hourly_trend.values, marker='o', linestyle='-', color='b')
@@ -522,12 +523,12 @@ elif page == "Casual vs Registered User":
 	st.markdown("---")
 
 	# Perbandingan casual & registered diambil dari mean workingday dan weathersit
-	grouped_weekday = days_df.groupby("workingday")[["casual", "registered"]].mean()
-	grouped_weather = days_df.groupby("weathersit")[["casual", "registered"]].mean()
+	grouped_weekday = filtered_df.groupby("workingday")[["casual", "registered"]].mean()
+	grouped_weather = filtered_df.groupby("weathersit")[["casual", "registered"]].mean()
 
 	fig, ax = plt.subplots(figsize=(35, 15))
-	sns.barplot(x=grouped_weekday.index, y=grouped_weekday["casual"], color="blue", label="Casual", ax=ax)
 	sns.barplot(x=grouped_weekday.index, y=grouped_weekday["registered"], color="red", alpha=0.7, label="Registered", ax=ax)
+	sns.barplot(x=grouped_weekday.index, y=grouped_weekday["casual"], color="blue", label="Casual", ax=ax)
 	ax.set_xticks([0,1])
 	ax.set_xticklabels(["Weekend/Holiday", "Weekday"])
 	ax.set_ylabel("Rata-rata Jumlah Pengguna", fontsize=30)
@@ -539,8 +540,8 @@ elif page == "Casual vs Registered User":
 	st.pyplot(fig) 
   
 	fig, ax = plt.subplots(figsize=(35, 15))
-	sns.barplot(x=grouped_weather.index, y=grouped_weather["casual"], color="blue", label="Casual", ax=ax)
 	sns.barplot(x=grouped_weather.index, y=grouped_weather["registered"], color="red", alpha=0.7, label="Registered", ax=ax)
+	sns.barplot(x=grouped_weather.index, y=grouped_weather["casual"], color="blue", label="Casual", ax=ax)
 	ax.set_xticks([0,1,2])
 	ax.set_xticklabels(["Cerah", "Mendung", "Hujan"])
 	ax.set_ylabel("Rata-rata Jumlah Pengguna", fontsize=30)
@@ -552,8 +553,8 @@ elif page == "Casual vs Registered User":
 	st.pyplot(fig)
 	
 	fig, ax = plt.subplots(figsize=(35, 15))
-	sns.regplot(x=days_df["temp"], y=days_df["casual"], scatter_kws={"alpha":0.5}, label="Casual", color="blue", ax=ax)
-	sns.regplot(x=days_df["temp"], y=days_df["registered"], scatter_kws={"alpha":0.5}, label="Registered", color="red", ax=ax)
+	sns.regplot(x=filtered_df["temp"], y=filtered_df["casual"], scatter_kws={"alpha":0.5}, label="Casual", color="blue", ax=ax)
+	sns.regplot(x=filtered_df["temp"], y=filtered_df["registered"], scatter_kws={"alpha":0.5}, label="Registered", color="red", ax=ax)
 	ax.set_ylabel("Temperatur (Normalisasi)", fontsize=30)
 	ax.set_xlabel("Jumlah Pengguna", fontsize=30)
 	ax.set_title("Pengaruh Suhu terhadap Pengguna Casual vs Registered", loc="center", fontsize=50, pad=30)
@@ -563,8 +564,8 @@ elif page == "Casual vs Registered User":
 	st.pyplot(fig)
  
 	fig, ax = plt.subplots(figsize=(35, 15))
-	sns.regplot(x=days_df["hum"], y=days_df["casual"], scatter_kws={"alpha":0.5}, label="Casual", color="blue", ax=ax)
-	sns.regplot(x=days_df["hum"], y=days_df["registered"], scatter_kws={"alpha":0.5}, label="Registered", color="red", ax=ax)
+	sns.regplot(x=filtered_df["hum"], y=filtered_df["casual"], scatter_kws={"alpha":0.5}, label="Casual", color="blue", ax=ax)
+	sns.regplot(x=filtered_df["hum"], y=filtered_df["registered"], scatter_kws={"alpha":0.5}, label="Registered", color="red", ax=ax)
 	ax.set_ylabel("Kelembaban (Normalisasi)", fontsize=30)
 	ax.set_xlabel("Jumlah Pengguna", fontsize=30)
 	ax.set_title("Pengaruh Kelembaban terhadap Pengguna Casual vs Registered", loc="center", fontsize=50, pad=30)
@@ -573,14 +574,24 @@ elif page == "Casual vs Registered User":
 	ax.legend(title="", fontsize=30, title_fontsize=30, loc="upper left")
 	st.pyplot(fig)
 elif page == "Analisis Lanjutan":
-  st.title("Analisis Lanjutan menggunakan metode Clustering")
+  st.title("Analisis Lanjutan menggunakan metode Manual Grouping")
   st.markdown("---")
   st.write("##### Berdasarkan Hasil Analisis ")
-  st.write(
-		"Cluster dengan banyak pengguna casual & sedikit registered Kemungkinan ini adalah pengguna yang hanya memakai sepeda sesekali (misalnya, di akhir pekan).\n"
-		"Cluster dengan banyak pengguna registered & sedikit casual mungkin pengguna tetap yang memakai sepeda untuk aktivitas harian seperti bekerja atau sekolah.\n"
-		"Cluster campuran dengan jumlah pengguna casual dan registered seimbang bisa jadi kelompok yang kadang memakai sepeda secara terdaftar, kadang tidak.\n"
-	)
+  st.markdown("""
+			<ul class="list-disc pl-5 text-gray-700">
+					<li><b>Jumlah pengguna meningkat</b> selama bulan tertentu seperti <b>Juni-September</b>.</li>
+					<li><b>Musim Panas (Summer) dan Musim Gugur (Fall)</b> mungkin memiliki lebih banyak pengguna karena <b>kondisi cuaca yang mendukung</b>.</li>
+					<li>Pengguna casual lebih banyak di <b>akhir pekan / hari libur</b> dibanding hari kerja.</li>
+					<li>Pengguna casual lebih sensitif terhadap cuaca dibanding pengguna registered</li>
+     			<li>Pada saat cuaca buruk pengguna registered lebih stabil.</li>
+			</ul>
+			</ul>
+		""",
+ 	unsafe_allow_html=True)
+  st.markdown("""
+			<div class="mb-4"></div>
+		""", 
+ 	unsafe_allow_html=True)
   st.write("##### Strategi mengubah pengguna casual menjadi pengguna registered ")
   st.markdown(
 		"- Targetkan promo kepada pengguna di cluster casual agar mereka lebih tertarik menjadi pengguna registered.\n"
@@ -588,43 +599,37 @@ elif page == "Analisis Lanjutan":
 	)
   st.markdown("---")
   
-  # Memilih fitur untuk clustering
-  features = ["casual", "registered", "temp", "hum", "windspeed", "workingday"]
-  X = days_df[features]
+  st.write("#### Jumlah pengguna per bulan dalam tiap tahun")
+  monthly_trend = days_df.groupby(["yr", "mnth"])[["casual", "registered", "cnt"]].sum().reset_index()
+  monthly_trend["yr"] = monthly_trend["yr"].map({0: "2011", 1: "2012"})
+  monthly_trend["mnth"] = monthly_trend["mnth"].map({
+    1: "Januari", 2: "Februari", 3: "Maret", 4: "April",
+    5: "Mei", 6: "Juni", 7: "Juli", 8: "Agustus",
+    9: "September", 10: "Oktober", 11: "November", 12: "Desember"
+	})
   
-  # Standarisasi data
-  scaler = StandardScaler()
-  X_scaled = scaler.fit_transform(X)
+  sorted_by_cnt = monthly_trend.sort_values(by="cnt", ascending=False)
+  sorted_by_casual = monthly_trend.sort_values(by="casual", ascending=False)
+  sorted_by_registered = monthly_trend.sort_values(by="registered", ascending=False)
   
-	# Menentukan jumlah klaster optimal menggunakan metode Elbow
-  wcss = []
-  for k in range(1, 11):
-    kmeans = KMeans(n_clusters=k, random_state=42, n_init=10)
-    kmeans.fit(X_scaled)
-    wcss.append(kmeans.inertia_)
-    
-  fig, ax = plt.subplots(figsize=(35, 15))
-  ax.plot(range(1, 11), wcss, marker="o", linestyle="-", color="blue")
-  ax.set_ylabel("WCSS (Within-Cluster Sum of Squares)", fontsize=30)
-  ax.set_xlabel("Jumlah Klaster", fontsize=30)
-  ax.set_title("Metode Elbow untuk Menentukan Jumlah Klaster Optimal", loc="center", fontsize=50, pad=30)
-  ax.tick_params(axis='y', labelsize=35)
-  ax.tick_params(axis='x', labelsize=30)
-  st.pyplot(fig)
+  st.write("##### Tabel jumlah semua pengguna per bulan dengan total tertinggi")
+  st.dataframe(sorted_by_cnt)
   
-  # Menjalankan K-Means dengan 3 klaster
-  kmeans = KMeans(n_clusters=3, random_state=42, n_init=10)
-  days_df["cluster"] = kmeans.fit_predict(X_scaled)
+  st.write("##### Tabel jumlah pengguna casual per bulan dengan total tertinggi")
+  st.dataframe(sorted_by_casual)
+ 
+  st.write("##### Tabel jumlah pengguna registered per bulan dengan total tertinggi")
+  st.dataframe(sorted_by_registered)
   
-  fig, ax = plt.subplots(figsize=(35, 15))
-  sns.scatterplot(x=days_df["casual"], y=days_df["registered"], hue=days_df["cluster"], palette="viridis", alpha=0.7, ax=ax)
-  ax.set_ylabel("Jumlah Pengguna Registered", fontsize=30)
-  ax.set_xlabel("Jumlah Pengguna Casual", fontsize=30)
-  ax.set_title("Hasil Clustering Pengguna Sepeda", loc="center", fontsize=50, pad=30)
-  ax.tick_params(axis='y', labelsize=35)
-  ax.tick_params(axis='x', labelsize=30)
-  ax.legend(title="Cluster", fontsize=30, title_fontsize=30, loc="upper left")
-  st.pyplot(fig)
   
+  st.write("#### Rata-rata Jumlah Pengguna (Casual & Registered) per Musim (Season)")
+  season_trend = days_df.groupby("season")[["casual", "registered", "cnt"]].mean().reset_index()
+  season_trend["season"] = season_trend["season"].map({1: "Spring", 2: "Summer", 3: "Fall", 4: "Winter"})
+  st.dataframe(season_trend)
+  
+  st.write("#### Rata-rata Jumlah Pengguna (Casual & Registered) dalam Cuaca (Weathersit)")
+  weathersit_trend = days_df.groupby("weathersit")[["casual", "registered", "cnt"]].mean().reset_index()
+  weathersit_trend["weathersit"] = weathersit_trend["weathersit"].map({1: "Clear", 2: "Mist", 3: "Light Snow", 4: "Heavy rain"})
+  st.dataframe(weathersit_trend)
 
 st.caption('Copyright (c) Agus Prasetyo')
